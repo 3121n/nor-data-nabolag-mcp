@@ -1,0 +1,43 @@
+{
+  "name": "@drist/nabolag-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for åpne norske nabolagsdata: kollektivdekning (Entur JourneyPlanner) og støysoner (Statens vegvesen Norstøy WMS)",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "drist-nabolag-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "entur",
+    "kollektivtransport",
+    "stoy",
+    "stoysone",
+    "vegvesen",
+    "nabolag",
+    "norway"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "@types/node": "^22.10.0"
+  }
+}
