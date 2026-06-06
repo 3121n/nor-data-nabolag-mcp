@@ -141,10 +141,169 @@ function tolkIntervaller(intervaller: number[]): { maks: number; nivaa: string }
 }
 
 // ---------------------------------------------------------------------------
+// NIBIO FKB-AR5 WMS — GetFeatureInfo-punktoppslag (MapServer: GML, ikke JSON).
+// ---------------------------------------------------------------------------
+
+const AR5_WMS = "https://wms.nibio.no/cgi-bin/ar5";
+
+type Ar5Punkt = {
+  artype?: string;
+  beskrivelse?: string;
+  treslag?: string;
+  arealDekar?: number;
+  verifiseringsdato?: string;
+  klassifiseringsmetode?: string;
+};
+
+function gmlTag(xml: string, tag: string): string | undefined {
+  const m = xml.match(new RegExp(`<${tag}>([^<]*)</${tag}>`));
+  return m?.[1] || undefined;
+}
+
+async function ar5Arealtype(lat: number, lon: number): Promise<Ar5Punkt | null> {
+  const dLat = 0.002;
+  const dLon = 0.004;
+  const url = new URL(AR5_WMS);
+  url.searchParams.set("SERVICE", "WMS");
+  url.searchParams.set("VERSION", "1.3.0");
+  url.searchParams.set("REQUEST", "GetFeatureInfo");
+  url.searchParams.set("LAYERS", "Arealtype");
+  url.searchParams.set("QUERY_LAYERS", "Arealtype");
+  url.searchParams.set("CRS", "EPSG:4326");
+  url.searchParams.set("BBOX", `${lat - dLat},${lon - dLon},${lat + dLat},${lon + dLon}`);
+  url.searchParams.set("WIDTH", "101");
+  url.searchParams.set("HEIGHT", "101");
+  url.searchParams.set("I", "50");
+  url.searchParams.set("J", "50");
+  url.searchParams.set("INFO_FORMAT", "application/vnd.ogc.gml");
+  url.searchParams.set("FEATURE_COUNT", "1");
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`NIBIO AR5 ${res.status} ${res.statusText}`);
+  }
+  const xml = await res.text();
+  if (xml.includes("ServiceException")) {
+    throw new Error(`NIBIO AR5 ServiceException: ${xml.slice(0, 200)}`);
+  }
+  if (!xml.includes("<Arealtype_feature>")) return null;
+  const arealDa = Number(gmlTag(xml, "areal_da"));
+  return {
+    artype: gmlTag(xml, "artype"),
+    beskrivelse: gmlTag(xml, "artype_beskrivelse"),
+    treslag: gmlTag(xml, "artreslag_beskrivelse"),
+    arealDekar: Number.isFinite(arealDa) ? arealDa : undefined,
+    verifiseringsdato: gmlTag(xml, "verifiseringsdato"),
+    klassifiseringsmetode: gmlTag(xml, "klassifiseringsmetode"),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// SSB Offentlige grøntområder (parker og turområder) — WFS GetFeature, GML 3.2.
+// Featurene er navnløse polygoner med areal (dekar), kommune- og tettstedsnr.
+// ---------------------------------------------------------------------------
+
+const SSB_PARKER_WFS = "https://kart.ssb.no/api/mapserver/v1/wfs/parker_og_turomraader";
+const SSB_PARKER_TYPENAME = "ms:layer-1b553d";
+
+type ParkTreff = {
+  avstandMeter: number;
+  innenfor: boolean;
+  arealDekar?: number;
+  kommunenummer?: string;
+};
+
+function haversineMeter(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000;
+  const rad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * rad;
+  const dLon = (lon2 - lon1) * rad;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+/** Ray-casting i grader (godt nok på polygonskala). Ring = [lat,lon]-par. */
+function punktIRing(lat: number, lon: number, ring: number[][]): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [latI, lonI] = ring[i];
+    const [latJ, lonJ] = ring[j];
+    if (
+      lonI > lon !== lonJ > lon &&
+      lat < ((latJ - latI) * (lon - lonI)) / (lonJ - lonI) + latI
+    ) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+async function ssbNaermestePark(lat: number, lon: number): Promise<{ treff: ParkTreff | null; sokteRadiusMeter: number; antallISisteSok: number }> {
+  const radier = [250, 500, 1000, 2000];
+  for (const radius of radier) {
+    const dLat = radius / 111_320;
+    const dLon = radius / (111_320 * Math.cos((lat * Math.PI) / 180));
+    const url = new URL(SSB_PARKER_WFS);
+    url.searchParams.set("service", "WFS");
+    url.searchParams.set("version", "2.0.0");
+    url.searchParams.set("request", "GetFeature");
+    url.searchParams.set("typenames", SSB_PARKER_TYPENAME);
+    url.searchParams.set(
+      "bbox",
+      `${lat - dLat},${lon - dLon},${lat + dLat},${lon + dLon},urn:ogc:def:crs:EPSG::4258`,
+    );
+    url.searchParams.set("count", "50");
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`SSB parker-WFS ${res.status} ${res.statusText}`);
+    }
+    const xml = await res.text();
+    if (xml.includes("ExceptionReport")) {
+      throw new Error(`SSB parker-WFS Exception: ${xml.slice(0, 200)}`);
+    }
+    const members = xml.split("<wfs:member>").slice(1);
+    if (!members.length) continue;
+
+    let beste: ParkTreff | null = null;
+    for (const member of members) {
+      const ringer: number[][][] = [];
+      for (const pl of member.matchAll(/<gml:posList[^>]*>([^<]+)<\/gml:posList>/g)) {
+        const tall = pl[1].trim().split(/\s+/).map(Number);
+        const ring: number[][] = [];
+        for (let i = 0; i + 1 < tall.length; i += 2) ring.push([tall[i], tall[i + 1]]);
+        if (ring.length >= 3) ringer.push(ring);
+      }
+      if (!ringer.length) continue;
+      const innenfor = punktIRing(lat, lon, ringer[0]);
+      let minAvstand = innenfor ? 0 : Infinity;
+      if (!innenfor) {
+        for (const ring of ringer) {
+          for (const [vLat, vLon] of ring) {
+            const d = haversineMeter(lat, lon, vLat, vLon);
+            if (d < minAvstand) minAvstand = d;
+          }
+        }
+      }
+      const dekar = Number(gmlTag(member, "ms:dekar"));
+      const treff: ParkTreff = {
+        avstandMeter: Math.round(minAvstand),
+        innenfor,
+        arealDekar: Number.isFinite(dekar) ? Math.round(dekar * 10) / 10 : undefined,
+        kommunenummer: gmlTag(member, "ms:komm_nr"),
+      };
+      if (!beste || treff.avstandMeter < beste.avstandMeter) beste = treff;
+    }
+    if (beste) return { treff: beste, sokteRadiusMeter: radius, antallISisteSok: members.length };
+  }
+  return { treff: null, sokteRadiusMeter: radier[radier.length - 1], antallISisteSok: 0 };
+}
+
+// ---------------------------------------------------------------------------
 // MCP-server
 // ---------------------------------------------------------------------------
 
-const server = new McpServer({ name: "drist-nabolag-mcp", version: "0.1.0" });
+const server = new McpServer({ name: "drist-nabolag-mcp", version: "0.2.0" });
 
 server.tool(
   "hent_kollektivdekning",
@@ -261,6 +420,63 @@ server.tool(
         navn: "Statens vegvesen — Norstøy (støyvarselkart T-1442 + strategisk støykartlegging)",
         tjeneste: NORSTOY_WMS,
         lisens: "Åpne data, punktoppslag uten avtale",
+      },
+    };
+    return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+  },
+);
+
+server.tool(
+  "hent_grontareal",
+  "Grøntareal rundt et koordinat (WGS84) fra to åpne kilder: (1) FKB-AR5 arealtype på selve punktet (bebygd/skog/dyrka/myr osv., NIBIO) og (2) avstand til nærmeste offentlige park-/turområde (SSB, ekspanderende søk 250 m → 2 km). NB: SSB-polygonene er navnløse og dekker primært tettsteder — 'ingen park' rurally betyr ofte at grøntarealet ER omgivelsene (se AR5-typen). Parkavstand måles til nærmeste polygon-hjørnepunkt (tilnærming). Kilder: NIBIO WMS + SSB WFS, åpne data uten avtale.",
+  {
+    lat: z.number().min(57).max(72).describe("Breddegrad (WGS84)"),
+    lon: z.number().min(4).max(32).describe("Lengdegrad (WGS84)"),
+  },
+  async ({ lat, lon }) => {
+    const [ar5, park] = await Promise.all([
+      ar5Arealtype(lat, lon),
+      ssbNaermestePark(lat, lon),
+    ]);
+
+    const parkTekst = park.treff
+      ? park.treff.innenfor
+        ? `Punktet ligger I et offentlig park-/turområde (${park.treff.arealDekar ?? "?"} dekar).`
+        : `Nærmeste park-/turområde: ${park.treff.avstandMeter} m (${park.treff.arealDekar ?? "?"} dekar).`
+      : "Ingen registrert park-/turområde innen 2 km — SSB-datasettet dekker primært tettsteder; i spredtbygde strøk er AR5-arealtypen rundt punktet et bedre grøntsignal.";
+
+    const result = {
+      lat,
+      lon,
+      arealtypePaaPunkt: ar5
+        ? {
+            kode: ar5.artype,
+            betydning: ar5.beskrivelse,
+            treslag: ar5.treslag && ar5.treslag !== "Ikke relevant" ? ar5.treslag : undefined,
+            figurArealDekar: ar5.arealDekar,
+            verifiseringsdato: ar5.verifiseringsdato,
+            klassifiseringsmetode: ar5.klassifiseringsmetode,
+          }
+        : { kode: undefined, betydning: "Ikke kartlagt i AR5 på dette punktet" },
+      naermestePark: {
+        treff: park.treff !== null,
+        ...(park.treff ?? {}),
+        sokteRadiusMeter: park.sokteRadiusMeter,
+        antallOmraaderISisteSok: park.antallISisteSok,
+        merknad: "SSB-polygonene er navnløse (kun areal/kommune/tettsted); avstand er til nærmeste hjørnepunkt på polygonet.",
+      },
+      sammendrag: `Arealtype på punktet: ${ar5?.beskrivelse ?? "ikke kartlagt"}. ${parkTekst}`,
+      kilde: {
+        ar5: {
+          navn: "NIBIO — FKB-AR5 arealressurskart",
+          tjeneste: AR5_WMS,
+          lisens: "Åpne data, punktoppslag uten avtale",
+        },
+        parker: {
+          navn: "SSB — Offentlige grøntområder (parker og turområder)",
+          tjeneste: SSB_PARKER_WFS,
+          lisens: "Åpne data (NLOD), uten avtale",
+        },
       },
     };
     return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };

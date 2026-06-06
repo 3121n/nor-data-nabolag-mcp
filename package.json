@@ -1,7 +1,7 @@
 {
   "name": "@drist/nabolag-mcp",
-  "version": "0.1.0",
-  "description": "MCP server for åpne norske nabolagsdata: kollektivdekning (Entur JourneyPlanner) og støysoner (Statens vegvesen Norstøy WMS)",
+  "version": "0.2.0",
+  "description": "MCP server for åpne norske nabolagsdata: kollektivdekning (Entur), støysoner (SVV Norstøy) og grøntareal (NIBIO AR5 + SSB parker)",
   "type": "module",
   "main": "dist/index.js",
   "bin": {

@@ -46,6 +46,8 @@ const cases = [
   ["hent_stoysone", { lat: 59.9302917, lon: 10.7606645 }, "Thorvald Meyers gate 2C (forventet: Lden/Lnight-treff)"],
   ["hent_stoysone", { lat: 69.1438892, lon: 18.1394969 }, "Ytterholtet 1, Sørreisa (forventet: ingen treff, ærlig omfangstekst)"],
   ["hent_stoysone", { lat: 59.89, lon: 10.525 }, "E18 Sandvika (positiv kontroll: rød/gul varselsone)"],
+  ["hent_grontareal", { lat: 59.9302917, lon: 10.7606645 }, "Thorvald Meyers gate 2C (forventet: bebygd + park i nærheten)"],
+  ["hent_grontareal", { lat: 69.1438892, lon: 18.1394969 }, "Ytterholtet 1, Sørreisa (forventet: bebygd punkt, AR5-fallback-tekst hvis ingen park)"],
 ];
 
 for (const [tool, args, label] of cases) {
@@ -53,7 +55,7 @@ for (const [tool, args, label] of cases) {
   if (res.error) { console.log(`FAIL ${label}: ${JSON.stringify(res.error)}`); continue; }
   const data = JSON.parse(res.result.content[0].text);
   const sammendrag =
-    tool === "hent_kollektivdekning"
+    tool === "hent_kollektivdekning" || tool === "hent_grontareal"
       ? data.sammendrag
       : `varsel=${data.stoyvarselkart.sone ?? "ingen"}, Lden=${data.strategiskStoykart.lden.treff ? data.strategiskStoykart.lden.nivaa : "ingen"}, Lnight=${data.strategiskStoykart.lnight.treff ? data.strategiskStoykart.lnight.nivaa : "ingen"}`;
   console.log(`OK  ${label}\n    -> ${sammendrag}`);

@@ -46,9 +46,21 @@ node test-e2e.mjs   # E2E mot live API-er (Oslo + Sørreisa + Sandvika-kontroll)
 }
 ```
 
+### `hent_grontareal(lat, lon)` (v0.2.0)
+Grøntareal fra to kilder: (1) FKB-AR5 arealtype på punktet (NIBIO WMS
+GetFeatureInfo, GML — MapServer støtter ikke JSON-infoformat) og
+(2) avstand til nærmeste offentlige park-/turområde (SSB WFS, ekspanderende
+søk 250 m → 2 km, punkt-i-polygon + nærmeste-hjørne-avstand).
+
+Ærlighets-design: SSB-polygonene er navnløse og dekker primært tettsteder;
+i spredtbygde strøk pekes det til AR5-typen som bedre grøntsignal.
+
+- Kilder: `wms.nibio.no/cgi-bin/ar5` + `kart.ssb.no/api/mapserver/v1/wfs/parker_og_turomraader`
+- Lisens: åpne data, uten avtale
+
 ## Veikart
 
-Se Gap-kartleggingen (Notion, Nabodata-huben): #3 grøntareal (AR5
-GetFeatureInfo + SSB parker), #4 skoler/barnehager (UDIR NSR/NBR v4),
-#5 solforhold (horisontprofil fra hent_hoyde). Jernbane-/flystøy som
-supplement til `hent_stoysone` via Geonorge WFS.
+Se Gap-kartleggingen (Notion, Nabodata-huben): #4 skoler/barnehager er
+bygget separat som drist-udir-mcp; #5 solforhold (horisontprofil fra
+hent_hoyde) gjenstår. Jernbane-/flystøy som supplement til `hent_stoysone`
+via Geonorge WFS.
