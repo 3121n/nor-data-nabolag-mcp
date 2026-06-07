@@ -1,7 +1,7 @@
 {
-  "name": "@drist/nabolag-mcp",
-  "version": "0.2.0",
-  "description": "MCP server for åpne norske nabolagsdata: kollektivdekning (Entur), støysoner (SVV Norstøy) og grøntareal (NIBIO AR5 + SSB parker)",
+  "name": "@nor-data/nabolag-mcp",
+  "version": "0.2.1",
+  "description": "MCP server for Norwegian neighborhood data: public-transport coverage (Entur), road-noise zones (Statens vegvesen), and green-area access (NIBIO + SSB). Open data, no API keys.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -9,7 +9,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LISTING.md"
   ],
   "scripts": {
     "build": "tsc",
@@ -22,15 +23,30 @@
   "keywords": [
     "mcp",
     "model-context-protocol",
+    "norway",
+    "neighborhood",
+    "real-estate",
+    "transit",
+    "noise",
+    "green-space",
     "entur",
     "kollektivtransport",
     "stoy",
     "stoysone",
     "vegvesen",
-    "nabolag",
-    "norway"
+    "nibio",
+    "ssb",
+    "nabolag"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/3121n/nor-data-nabolag-mcp.git"
+  },
+  "homepage": "https://github.com/3121n/nor-data-nabolag-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/3121n/nor-data-nabolag-mcp/issues"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
     "zod": "^3.23.8"

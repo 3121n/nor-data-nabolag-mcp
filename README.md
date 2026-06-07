@@ -1,4 +1,4 @@
-# @drist/nabolag-mcp
+# @nor-data/nabolag-mcp
 
 MCP-server som wrapper åpne norske nabolagsdata. Bygget for Nabodata-produktet,
 gjenbrukbar på tvers (delt personlig MCP-datapipeline).

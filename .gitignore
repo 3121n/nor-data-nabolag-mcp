@@ -1,3 +1,13 @@
 node_modules/
 dist/
 *.log
+node_modules
+dist
+celle2_adresser.json
+celle2_adressetrekning.py
+celle2_generer_rapporter.mjs
+celle2_last_opp_notion.py
+celle2_rapporter.json
+inspiser_alder.mjs
+test-e2e.mjs
+.notion_api_key

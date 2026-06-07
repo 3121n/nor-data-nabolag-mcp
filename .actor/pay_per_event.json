@@ -1,0 +1,12 @@
+{
+  "actor-start": {
+    "eventTitle": "MCP session start",
+    "eventDescription": "Charged once when an MCP client opens a session against the standby server.",
+    "eventPriceUsd": 0.001
+  },
+  "tool-call": {
+    "eventTitle": "Tool call",
+    "eventDescription": "Charged per tool invocation (hent_kollektivdekning, hent_stoysone, hent_grontareal).",
+    "eventPriceUsd": 0.002
+  }
+}

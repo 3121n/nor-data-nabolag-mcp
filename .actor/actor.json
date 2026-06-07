@@ -1,0 +1,12 @@
+{
+  "actorSpecification": 1,
+  "name": "nabolag-mcp",
+  "title": "Nabolag MCP — Norwegian neighborhood data",
+  "description": "MCP server exposing open Norwegian neighborhood-quality data: public-transport coverage (Entur), road-noise zones (Statens vegvesen), and green-area access (NIBIO + SSB).",
+  "version": "0.2",
+  "usesStandbyMode": true,
+  "webServerMcpPath": "/mcp",
+  "minMemoryMbytes": 256,
+  "maxMemoryMbytes": 1024,
+  "dockerfile": "./Dockerfile"
+}
