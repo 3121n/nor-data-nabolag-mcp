@@ -1,6 +1,6 @@
 {
   "name": "@nor-data/nabolag-mcp",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "MCP server for Norwegian neighborhood data: public-transport coverage (Entur), road-noise zones (Statens vegvesen), and green-area access (NIBIO + SSB). Open data, no API keys.",
   "type": "module",
   "main": "dist/index.js",
@@ -55,5 +55,6 @@
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
     "@types/node": "^22.10.0"
-  }
+  },
+  "mcpName": "io.github.3121n/nabolag-mcp"
 }

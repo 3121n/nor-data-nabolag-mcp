@@ -1,0 +1,20 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.3121n/nabolag-mcp",
+  "description": "MCP server for Norwegian neighborhood data: public-transport coverage (Entur), road-noise zones (Statens vegvesen), and green-area access (NIBIO + SSB). Open data, no API keys.",
+  "repository": {
+    "url": "https://github.com/3121n/nor-data-nabolag-mcp",
+    "source": "github"
+  },
+  "version": "0.2.2",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@nor-data/nabolag-mcp",
+      "version": "0.2.2",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
